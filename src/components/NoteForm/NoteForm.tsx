@@ -14,11 +14,11 @@ const NoteSchema = Yup.object().shape({
   title: Yup.string()
     .min(3, "Too short")
     .max(50, "Too long")
-    .required("Required"),
+    .required("Title is required"),
   content: Yup.string().max(500, "Max 500 characters"),
   tag: Yup.mixed<NewNote["tag"]>()
     .oneOf(["Todo", "Work", "Personal", "Meeting", "Shopping"])
-    .required("Required"),
+    .required("Tag is required"),
 });
 
 function NoteForm({ onSuccess, onCancel }: Props) {
@@ -46,7 +46,6 @@ function NoteForm({ onSuccess, onCancel }: Props) {
     >
       {({ isSubmitting }) => (
         <Form className={css.form}>
-          {/* Title */}
           <div className={css.formGroup}>
             <label htmlFor="title">Title</label>
             <Field id="title" name="title" type="text" className={css.input} />

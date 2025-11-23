@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  keepPreviousData,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { FetchNotesResponse } from "../../services/noteService";
 import noteService from "../../services/noteService";
 import NoteList from "../NoteList/NoteList";
@@ -8,6 +13,8 @@ import SearchBox from "../SearchBox/SearchBox";
 import useDebounce from "../../hooks/useDebounce";
 import Modal from "../Modal/Modal";
 import NoteForm from "../NoteForm/NoteForm";
+import Loader from "../Loader/Loader";
+import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import css from "./App.module.css";
 
 function App() {
@@ -19,7 +26,7 @@ function App() {
 
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<FetchNotesResponse>({
+  const { data, isLoading, isError } = useQuery<FetchNotesResponse>({
     queryKey: ["notes", currentPage, debouncedSearch],
     queryFn: () =>
       noteService.fetchNotes({
@@ -27,8 +34,7 @@ function App() {
         limit: perPage,
         search: debouncedSearch,
       }),
-    placeholderData: { notes: [], totalPages: 0 },
-    staleTime: 5000,
+    placeholderData: keepPreviousData,
   });
 
   const deleteMutation = useMutation({
@@ -44,16 +50,20 @@ function App() {
       <header className={css.toolbar}>
         <SearchBox value={search} onChange={setSearch} />
         {totalPages > 1 && (
-          <Pagination pageCount={totalPages} onPageChange={setCurrentPage} />
+          <Pagination
+            pageCount={totalPages}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+          />
         )}
         <button className={css.button} onClick={() => setIsModalOpen(true)}>
           Create note +
         </button>
       </header>
 
-      {isLoading ? (
-        <p>Loading notes...</p>
-      ) : (
+      {isError && <ErrorMessage />}
+      {isLoading && <Loader />}
+      {!isLoading && !isError && (
         <NoteList notes={notes} onDelete={(id) => deleteMutation.mutate(id)} />
       )}
 
@@ -68,4 +78,5 @@ function App() {
     </div>
   );
 }
+
 export default App;
