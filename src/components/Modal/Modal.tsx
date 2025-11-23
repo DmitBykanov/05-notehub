@@ -13,16 +13,20 @@ function Modal({ children, onClose }: ModalProps) {
       if (event.key === "Escape") onClose();
     };
 
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = originalOverflow;
+    };
   }, [onClose]);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) onClose();
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) onClose();
   };
 
   const modalRoot = document.getElementById("modal-root");
-
   if (!modalRoot) return null;
 
   return createPortal(

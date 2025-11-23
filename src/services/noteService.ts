@@ -5,7 +5,7 @@ const TOKEN = import.meta.env.VITE_NOTEHUB_TOKEN;
 
 export interface FetchNotesParams {
   page?: number;
-  limit?: number;
+  perPage?: number;
   search?: string;
 }
 
@@ -17,7 +17,8 @@ export interface FetchNotesResponse {
 const notesInstance = axios.create({
   baseURL: "https://notehub-public.goit.study/api",
   headers: {
-    Authorization: `Bearer ${TOKEN}`,
+    ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+    "Content-Type": "application/json",
   },
 });
 
@@ -25,13 +26,16 @@ const noteService = {
   fetchNotes: async (
     params: FetchNotesParams = {}
   ): Promise<FetchNotesResponse> => {
+    const { page = 1, perPage = 10, search } = params;
+
     const response = await notesInstance.get<FetchNotesResponse>("/notes", {
       params: {
-        page: params.page ?? 1,
-        perPage: params.limit ?? 10,
-        ...(params.search ? { search: params.search } : {}),
+        page,
+        perPage,
+        ...(search ? { search } : {}),
       },
     });
+
     return response.data;
   },
 
@@ -45,4 +49,5 @@ const noteService = {
     return response.data;
   },
 };
+
 export default noteService;

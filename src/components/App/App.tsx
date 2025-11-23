@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   useQuery,
   keepPreviousData,
-  useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import type { FetchNotesResponse } from "../../services/noteService";
@@ -22,6 +21,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
   const debouncedSearch = useDebounce(search, 500);
 
   const queryClient = useQueryClient();
@@ -31,24 +31,24 @@ function App() {
     queryFn: () =>
       noteService.fetchNotes({
         page: currentPage,
-        limit: perPage,
+        perPage: perPage,
         search: debouncedSearch,
       }),
     placeholderData: keepPreviousData,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: noteService.deleteNote,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
-  });
-
   const notes = data?.notes ?? [];
   const totalPages = data?.totalPages ?? 0;
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        <SearchBox value={search} onChange={setSearch} />
+        <SearchBox value={search} onChange={handleSearchChange} />
         {totalPages > 1 && (
           <Pagination
             pageCount={totalPages}
@@ -63,14 +63,16 @@ function App() {
 
       {isError && <ErrorMessage />}
       {isLoading && <Loader />}
-      {!isLoading && !isError && (
-        <NoteList notes={notes} onDelete={(id) => deleteMutation.mutate(id)} />
-      )}
+
+      {!isLoading && !isError && <NoteList notes={notes} />}
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
           <NoteForm
-            onSuccess={() => setIsModalOpen(false)}
+            onSuccess={() => {
+              setIsModalOpen(false);
+              queryClient.invalidateQueries({ queryKey: ["notes"] });
+            }}
             onCancel={() => setIsModalOpen(false)}
           />
         </Modal>

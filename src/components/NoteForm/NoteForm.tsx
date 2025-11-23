@@ -5,7 +5,7 @@ import noteService from "../../services/noteService";
 import type { NewNote } from "../../types/note";
 import css from "./NoteForm.module.css";
 
-type Props = {
+type NoteFormProps = {
   onSuccess?: () => void;
   onCancel?: () => void;
 };
@@ -21,7 +21,7 @@ const NoteSchema = Yup.object().shape({
     .required("Tag is required"),
 });
 
-function NoteForm({ onSuccess, onCancel }: Props) {
+function NoteForm({ onSuccess, onCancel }: NoteFormProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
