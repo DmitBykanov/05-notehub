@@ -1,35 +1,71 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { FetchNotesResponse } from "../../services/noteService";
+import noteService from "../../services/noteService";
+import NoteList from "../NoteList/NoteList";
+import Pagination from "../Pagination/Pagination";
+import SearchBox from "../SearchBox/SearchBox";
+import useDebounce from "../../hooks/useDebounce";
+import Modal from "../Modal/Modal";
+import NoteForm from "../NoteForm/NoteForm";
+import css from "./App.module.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const perPage = 12;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const debouncedSearch = useDebounce(search, 500);
+
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery<FetchNotesResponse>({
+    queryKey: ["notes", currentPage, debouncedSearch],
+    queryFn: () =>
+      noteService.fetchNotes({
+        page: currentPage,
+        limit: perPage,
+        search: debouncedSearch,
+      }),
+    placeholderData: { notes: [], totalPages: 0 },
+    staleTime: 5000,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: noteService.deleteNote,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+  });
+
+  const notes = data?.notes ?? [];
+  const totalPages = data?.totalPages ?? 0;
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+    <div className={css.app}>
+      <header className={css.toolbar}>
+        <SearchBox value={search} onChange={setSearch} />
+        {totalPages > 1 && (
+          <Pagination pageCount={totalPages} onPageChange={setCurrentPage} />
+        )}
+        <button className={css.button} onClick={() => setIsModalOpen(true)}>
+          Create note +
         </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+      </header>
 
-export default App
+      {isLoading ? (
+        <p>Loading notes...</p>
+      ) : (
+        <NoteList notes={notes} onDelete={(id) => deleteMutation.mutate(id)} />
+      )}
+
+      {isModalOpen && (
+        <Modal onClose={() => setIsModalOpen(false)}>
+          <NoteForm
+            onSuccess={() => setIsModalOpen(false)}
+            onCancel={() => setIsModalOpen(false)}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+export default App;
